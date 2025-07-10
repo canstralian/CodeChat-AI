@@ -3,8 +3,30 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertChatSchema, insertMessageSchema } from "@shared/schema";
 import { generateCodeResponse, generateChatTitle } from "./services/openai";
+import { secretsManager } from "./services/secrets";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint with API key status
+  app.get("/api/health", async (req, res) => {
+    try {
+      const validationStatus = secretsManager.getValidationStatus();
+      const bestConfig = secretsManager.getBestAIConfig();
+      
+      res.json({
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        services: validationStatus,
+        activeAIService: bestConfig ? bestConfig.service : null,
+        hasValidAIService: bestConfig !== null
+      });
+    } catch (error) {
+      res.status(500).json({ 
+        status: "unhealthy", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
   // Create a new chat
   app.post("/api/chats", async (req, res) => {
     try {
@@ -60,6 +82,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chatId = parseInt(req.params.id);
       const messages = await storage.getMessages(chatId);
       res.json(messages);
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  // API Key management endpoints
+  app.post("/api/admin/validate-keys", async (req, res) => {
+    try {
+      await secretsManager.validateAllKeys();
+      const status = secretsManager.getValidationStatus();
+      res.json({ message: "Validation completed", status });
+    } catch (error) {
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  });
+
+  app.get("/api/admin/key-status", async (req, res) => {
+    try {
+      const status = secretsManager.getValidationStatus();
+      const bestConfig = secretsManager.getBestAIConfig();
+      res.json({
+        status,
+        activeService: bestConfig?.service || null,
+        hasValidService: bestConfig !== null
+      });
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
