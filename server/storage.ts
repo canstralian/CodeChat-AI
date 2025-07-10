@@ -58,6 +58,7 @@ export class MemStorage implements IStorage {
     const chat: Chat = {
       ...insertChat,
       id,
+      userId: insertChat.userId ?? null,
       createdAt: now,
       updatedAt: now,
     };

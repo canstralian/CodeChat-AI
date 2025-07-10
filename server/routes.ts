@@ -22,7 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const chats = await storage.getChats();
       res.json(chats);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(chat);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -50,7 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -61,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const messages = await storage.getMessages(chatId);
       res.json(messages);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiMessage
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
     }
   });
 
