@@ -4,8 +4,23 @@ import { storage } from "./storage";
 import { insertChatSchema, insertMessageSchema } from "@shared/schema";
 import { generateCodeResponse, generateChatTitle } from "./services/openai";
 import { secretsManager } from "./services/secrets";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Auth middleware
+  await setupAuth(app);
+
+  // Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
   // Health check endpoint with API key status
   app.get("/api/health", async (req, res) => {
     try {
@@ -28,9 +43,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new chat
-  app.post("/api/chats", async (req, res) => {
+  app.post("/api/chats", isAuthenticated, async (req: any, res) => {
     try {
-      const chatData = insertChatSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      const chatData = insertChatSchema.parse({ ...req.body, userId });
       const chat = await storage.createChat(chatData);
       res.json(chat);
     } catch (error) {
@@ -38,10 +54,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all chats
-  app.get("/api/chats", async (req, res) => {
+  // Get all chats for authenticated user
+  app.get("/api/chats", isAuthenticated, async (req: any, res) => {
     try {
-      const chats = await storage.getChats();
+      const userId = req.user.claims.sub;
+      const chats = await storage.getChats(userId);
       res.json(chats);
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -49,13 +66,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get specific chat
-  app.get("/api/chats/:id", async (req, res) => {
+  app.get("/api/chats/:id", isAuthenticated, async (req: any, res) => {
     try {
       const chatId = parseInt(req.params.id);
       const chat = await storage.getChat(chatId);
       if (!chat) {
         return res.status(404).json({ error: "Chat not found" });
       }
+      
+      // Ensure the chat belongs to the authenticated user
+      const userId = req.user.claims.sub;
+      if (chat.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       res.json(chat);
     } catch (error) {
       res.status(500).json({ error: error instanceof Error ? error.message : "Unknown error" });
@@ -63,9 +87,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete chat
-  app.delete("/api/chats/:id", async (req, res) => {
+  app.delete("/api/chats/:id", isAuthenticated, async (req: any, res) => {
     try {
       const chatId = parseInt(req.params.id);
+      const chat = await storage.getChat(chatId);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      // Ensure the chat belongs to the authenticated user
+      const userId = req.user.claims.sub;
+      if (chat.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       const deleted = await storage.deleteChat(chatId);
       if (!deleted) {
         return res.status(404).json({ error: "Chat not found" });
