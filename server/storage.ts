@@ -1,4 +1,6 @@
 import { users, chats, messages, type User, type InsertUser, type Chat, type InsertChat, type Message, type InsertMessage } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -18,106 +20,90 @@ export interface IStorage {
   deleteMessage(id: number): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private chats: Map<number, Chat>;
-  private messages: Map<number, Message>;
-  private currentUserId: number;
-  private currentChatId: number;
-  private currentMessageId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.chats = new Map();
-    this.messages = new Map();
-    this.currentUserId = 1;
-    this.currentChatId = 1;
-    this.currentMessageId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async createChat(insertChat: InsertChat): Promise<Chat> {
-    const id = this.currentChatId++;
-    const now = new Date();
-    const chat: Chat = {
-      ...insertChat,
-      id,
-      userId: insertChat.userId ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.chats.set(id, chat);
+    const [chat] = await db
+      .insert(chats)
+      .values(insertChat)
+      .returning();
     return chat;
   }
 
   async getChats(userId?: number): Promise<Chat[]> {
-    const allChats = Array.from(this.chats.values());
     if (userId) {
-      return allChats.filter(chat => chat.userId === userId);
+      return await db
+        .select()
+        .from(chats)
+        .where(eq(chats.userId, userId))
+        .orderBy(desc(chats.updatedAt));
     }
-    return allChats.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    return await db
+      .select()
+      .from(chats)
+      .orderBy(desc(chats.updatedAt));
   }
 
   async getChat(id: number): Promise<Chat | undefined> {
-    return this.chats.get(id);
+    const [chat] = await db.select().from(chats).where(eq(chats.id, id));
+    return chat || undefined;
   }
 
   async updateChat(id: number, updates: Partial<Chat>): Promise<Chat | undefined> {
-    const chat = this.chats.get(id);
-    if (!chat) return undefined;
-    
-    const updatedChat = { ...chat, ...updates, updatedAt: new Date() };
-    this.chats.set(id, updatedChat);
-    return updatedChat;
+    const [updatedChat] = await db
+      .update(chats)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(chats.id, id))
+      .returning();
+    return updatedChat || undefined;
   }
 
   async deleteChat(id: number): Promise<boolean> {
-    const deleted = this.chats.delete(id);
-    // Also delete associated messages
-    Array.from(this.messages.entries()).forEach(([msgId, message]) => {
-      if (message.chatId === id) {
-        this.messages.delete(msgId);
-      }
-    });
-    return deleted;
+    // Delete associated messages first
+    await db.delete(messages).where(eq(messages.chatId, id));
+    
+    // Delete the chat
+    const result = await db.delete(chats).where(eq(chats.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = this.currentMessageId++;
-    const message: Message = {
-      ...insertMessage,
-      id,
-      createdAt: new Date(),
-    };
-    this.messages.set(id, message);
+    const [message] = await db
+      .insert(messages)
+      .values(insertMessage)
+      .returning();
     return message;
   }
 
   async getMessages(chatId: number): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter(message => message.chatId === chatId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.chatId, chatId))
+      .orderBy(messages.createdAt);
   }
 
   async deleteMessage(id: number): Promise<boolean> {
-    return this.messages.delete(id);
+    const result = await db.delete(messages).where(eq(messages.id, id));
+    return result.rowCount !== null && result.rowCount > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

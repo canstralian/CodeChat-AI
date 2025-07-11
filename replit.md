@@ -24,7 +24,7 @@ Preferred communication style: Simple, everyday language.
 - **Database ORM**: Drizzle ORM
 - **Database**: PostgreSQL (configured via Neon serverless)
 - **API Integration**: OpenAI API for AI responses
-- **Session Management**: In-memory storage with interface for future database integration
+- **Session Management**: PostgreSQL database with Drizzle ORM for persistent data storage
 
 ## Key Components
 
@@ -93,6 +93,14 @@ RESTful API endpoints:
 - **Database**: Configured for PostgreSQL with connection pooling
 - **API Keys**: OpenAI API key required for AI functionality
 - **CORS**: Configured for cross-origin requests in development
-- **Session Management**: Currently uses in-memory storage, designed for easy database integration
+- **Session Management**: PostgreSQL database with persistent storage for all data
+
+## Recent Changes
+
+### Database Integration (July 11, 2025)
+- **Added PostgreSQL database**: Replaced in-memory storage with persistent PostgreSQL database
+- **Updated storage layer**: Implemented DatabaseStorage class using Drizzle ORM for all CRUD operations
+- **Schema migration**: Applied database schema with users, chats, and messages tables
+- **Verified functionality**: Tested database operations for chat creation and retrieval
 
 The application is designed to be easily deployable on platforms like Replit, Vercel, or traditional hosting with PostgreSQL support.
