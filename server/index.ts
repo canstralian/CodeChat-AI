@@ -1,15 +1,24 @@
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { secretsManager } from "./services/secrets";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
 
+// Enhanced JSON parsing with size limits
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Optimized logging middleware with request tracking
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+  const requestId = Math.random().toString(36).substring(2, 15);
+  
+  // Add request ID to request object for tracking
+  (req as any).requestId = requestId;
+  
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -21,13 +30,20 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      let logLine = `[${requestId}] ${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      
+      // Only log response body for non-sensitive endpoints
+      if (capturedJsonResponse && !path.includes('/auth') && !path.includes('/admin')) {
+        const responseStr = JSON.stringify(capturedJsonResponse);
+        if (responseStr.length <= 200) {
+          logLine += ` :: ${responseStr}`;
+        } else {
+          logLine += ` :: ${responseStr.slice(0, 197)}...`;
+        }
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (logLine.length > 120) {
+        logLine = logLine.slice(0, 119) + "…";
       }
 
       log(logLine);
@@ -37,53 +53,114 @@ app.use((req, res, next) => {
   next();
 });
 
+// Global error handler with enhanced logging
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  const requestId = (req as any).requestId || 'unknown';
+
+  // Log error with request context
+  console.error(`[${requestId}] Error ${status}: ${message}`, {
+    path: req.path,
+    method: req.method,
+    stack: err.stack
+  });
+
+  res.status(status).json({ 
+    message,
+    requestId: process.env.NODE_ENV === 'development' ? requestId : undefined
+  });
+});
+
+// Enhanced server initialization with better error handling
 (async () => {
-  // Initialize and validate API keys on startup
-  console.log('🔑 Initializing secrets manager...');
-  await secretsManager.validateAllKeys();
-  secretsManager.startPeriodicValidation();
-  
-  const server = await registerRoutes(app);
+  try {
+    console.log('🚀 Starting server initialization...');
+    
+    // Initialize secrets manager with enhanced error handling
+    console.log('🔑 Initializing secrets manager...');
+    await secretsManager.validateAllKeys();
+    
+    // Start periodic validation with optimized interval
+    secretsManager.startPeriodicValidation(300000); // 5 minutes
+    
+    // Register routes with error handling
+    const server = await registerRoutes(app);
+    
+    // Setup development or production environment
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
-
-  // Graceful shutdown handling
-  const cleanup = () => {
-    console.log('🔄 Shutting down gracefully...');
-    secretsManager.cleanup();
-    server.close(() => {
-      console.log('✅ Server closed');
-      process.exit(0);
+    // Start server with enhanced configuration
+    const port = 5000;
+    const host = "0.0.0.0";
+    
+    server.listen({
+      port,
+      host,
+      reusePort: true,
+    }, () => {
+      log(`✅ Server running on ${host}:${port}`);
+      log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      
+      // Log service status
+      const status = secretsManager.getValidationStatus();
+      const validServices = Object.values(status).filter(s => s.isValid).length;
+      log(`🔑 ${validServices}/${Object.keys(status).length} services validated`);
     });
-  };
 
-  process.on('SIGINT', cleanup);
-  process.on('SIGTERM', cleanup);
+    // Enhanced graceful shutdown handling
+    const cleanup = async () => {
+      console.log('🔄 Initiating graceful shutdown...');
+      
+      try {
+        // Stop periodic validation
+        secretsManager.cleanup();
+        
+        // Close server with timeout
+        await new Promise<void>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Server shutdown timeout'));
+          }, 10000); // 10 second timeout
+          
+          server.close((err) => {
+            clearTimeout(timeout);
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+        
+        console.log('✅ Server shutdown completed');
+        process.exit(0);
+      } catch (error) {
+        console.error('❌ Error during shutdown:', error);
+        process.exit(1);
+      }
+    };
+
+    // Handle shutdown signals
+    process.on('SIGINT', cleanup);
+    process.on('SIGTERM', cleanup);
+    
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      console.error('❌ Uncaught Exception:', error);
+      cleanup();
+    });
+    
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+      cleanup();
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
 })();
