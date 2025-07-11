@@ -18,32 +18,56 @@ export class APIKeyManager {
   public static async rotateAPIKey(config: APIKeyRotationConfig): Promise<boolean> {
     const { service, newKey, validateBeforeSwitch } = config;
     
-    if (validateBeforeSwitch) {
-      console.log(`🔄 Validating new ${service} API key before rotation...`);
-      
-      // Temporarily set the new key for validation
-      const originalKey = process.env[service === 'openrouter' ? 'OPENROUTER_API_KEY' : 'ANTHROPIC_API_KEY'];
-      process.env[service === 'openrouter' ? 'OPENROUTER_API_KEY' : 'ANTHROPIC_API_KEY'] = newKey;
-      
-      // Validate the new key
-      await secretsManager.validateAllKeys();
-      const isValid = secretsManager.getAPIKey(service) !== null;
-      
-      if (!isValid) {
-        // Restore original key if validation fails
-        process.env[service === 'openrouter' ? 'OPENROUTER_API_KEY' : 'ANTHROPIC_API_KEY'] = originalKey;
-        await secretsManager.validateAllKeys();
-        console.error(`❌ New ${service} API key validation failed, keeping original key`);
-        return false;
-      }
-    } else {
-      // Direct rotation without validation
-      process.env[service === 'openrouter' ? 'OPENROUTER_API_KEY' : 'ANTHROPIC_API_KEY'] = newKey;
-      await secretsManager.validateAllKeys();
+    if (!newKey?.trim()) {
+      console.error(`❌ Invalid new key provided for ${service}`);
+      return false;
     }
     
-    console.log(`✅ Successfully rotated ${service} API key`);
-    return true;
+    const envVarName = service === 'openrouter' ? 'OPENROUTER_API_KEY' : 'ANTHROPIC_API_KEY';
+    const originalKey = process.env[envVarName];
+    
+    try {
+      if (validateBeforeSwitch) {
+        console.log(`🔄 Validating new ${service} API key before rotation...`);
+        
+        // Temporarily set the new key for validation
+        process.env[envVarName] = newKey;
+        
+        // Force reinitialization of config to pick up new environment variable
+        const secretsInstance = secretsManager as any;
+        secretsInstance.initializeConfig();
+        
+        // Validate the new key
+        await secretsManager.validateAllKeys();
+        const isValid = secretsManager.getAPIKey(service) !== null;
+        
+        if (!isValid) {
+          throw new Error(`New ${service} API key validation failed`);
+        }
+      } else {
+        // Direct rotation without validation
+        process.env[envVarName] = newKey;
+        const secretsInstance = secretsManager as any;
+        secretsInstance.initializeConfig();
+        await secretsManager.validateAllKeys();
+      }
+      
+      console.log(`✅ Successfully rotated ${service} API key`);
+      return true;
+    } catch (error) {
+      // Restore original key if validation fails
+      if (originalKey !== undefined) {
+        process.env[envVarName] = originalKey;
+      } else {
+        delete process.env[envVarName];
+      }
+      const secretsInstance = secretsManager as any;
+      secretsInstance.initializeConfig();
+      await secretsManager.validateAllKeys();
+      
+      console.error(`❌ API key rotation failed for ${service}:`, error instanceof Error ? error.message : 'Unknown error');
+      return false;
+    }
   }
 
   /**

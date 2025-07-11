@@ -23,6 +23,10 @@ class SecretsManager {
   private validationInterval: NodeJS.Timeout | null = null;
 
   private constructor() {
+    this.initializeConfig();
+  }
+
+  private initializeConfig(): void {
     this.config = {
       openrouter: {
         key: process.env.OPENROUTER_API_KEY || '',
@@ -56,17 +60,19 @@ class SecretsManager {
    * Validates API key by making a minimal test request
    */
   private async validateOpenRouterKey(key: string): Promise<boolean> {
-    if (!key) return false;
+    if (!key?.trim()) return false;
     
     try {
       const response = await fetch('https://openrouter.ai/api/v1/models', {
         headers: {
           'Authorization': `Bearer ${key}`,
           'HTTP-Referer': 'http://localhost:5000'
-        }
+        },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
       return response.ok;
-    } catch {
+    } catch (error) {
+      console.warn(`OpenRouter validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }
@@ -75,7 +81,7 @@ class SecretsManager {
    * Validates Anthropic API key
    */
   private async validateAnthropicKey(key: string): Promise<boolean> {
-    if (!key) return false;
+    if (!key?.trim()) return false;
     
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -89,10 +95,12 @@ class SecretsManager {
           model: 'claude-3-sonnet-20240229',
           max_tokens: 1,
           messages: [{ role: 'user', content: 'test' }]
-        })
+        }),
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
       return response.status !== 401;
-    } catch {
+    } catch (error) {
+      console.warn(`Anthropic validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   }
@@ -211,6 +219,13 @@ class SecretsManager {
         { isValid: config.isValid, lastValidated: config.lastValidated }
       ])
     );
+  }
+
+  /**
+   * Cleanup method to prevent memory leaks
+   */
+  public cleanup(): void {
+    this.stopPeriodicValidation();
   }
 }
 

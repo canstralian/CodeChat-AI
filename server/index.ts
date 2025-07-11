@@ -73,4 +73,17 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Graceful shutdown handling
+  const cleanup = () => {
+    console.log('🔄 Shutting down gracefully...');
+    secretsManager.cleanup();
+    server.close(() => {
+      console.log('✅ Server closed');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
 })();
