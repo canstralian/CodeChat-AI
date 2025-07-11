@@ -1,15 +1,27 @@
-import { users, chats, messages, type User, type InsertUser, type Chat, type InsertChat, type Message, type InsertMessage } from "@shared/schema";
+import {
+  users,
+  chats,
+  messages,
+  type User,
+  type UpsertUser,
+  type Chat,
+  type InsertChat,
+  type Message,
+  type InsertMessage,
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
+// Interface for storage operations
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // User operations
+  // (IMPORTANT) these user operations are mandatory for Replit Auth.
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
   
   // Chat operations
   createChat(chat: InsertChat): Promise<Chat>;
-  getChats(userId?: number): Promise<Chat[]>;
+  getChats(userId?: string): Promise<Chat[]>;
   getChat(id: number): Promise<Chat | undefined>;
   updateChat(id: number, updates: Partial<Chat>): Promise<Chat | undefined>;
   deleteChat(id: number): Promise<boolean>;
@@ -21,20 +33,25 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  // User operations
+  // (IMPORTANT) these user operations are mandatory for Replit Auth.
+
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
@@ -47,7 +64,7 @@ export class DatabaseStorage implements IStorage {
     return chat;
   }
 
-  async getChats(userId?: number): Promise<Chat[]> {
+  async getChats(userId?: string): Promise<Chat[]> {
     if (userId) {
       return await db
         .select()
