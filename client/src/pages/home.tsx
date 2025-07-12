@@ -1,49 +1,81 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import Sidebar from "@/components/chat/sidebar";
 import ChatInterface from "@/components/chat/chat-interface";
+import { chatApi } from "@/lib/api";
 import type { Chat } from "@shared/schema";
 
 export default function Home() {
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: chats = [], refetch: refetchChats } = useQuery<Chat[]>({
     queryKey: ["/api/chats"],
+    queryFn: chatApi.getChats,
   });
 
-  const handleNewChat = () => {
-    setSelectedChatId(null);
-    setIsSidebarOpen(false);
-  };
-
-  const handleChatSelect = (chatId: number) => {
-    setSelectedChatId(chatId);
-    setIsSidebarOpen(false);
-  };
-
   const handleChatCreated = (chatId: number) => {
-    setSelectedChatId(chatId);
+    if (chatId === 0) {
+      // Create new chat
+      setSelectedChatId(null);
+    } else {
+      setSelectedChatId(chatId);
+    }
+    refetchChats();
+    setSidebarOpen(false);
+  };
+
+  const handleChatDeleted = () => {
+    setSelectedChatId(null);
     refetchChats();
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#F8FAFC] to-[#E2E8F0]">
-      <Sidebar
-        chats={chats}
-        selectedChatId={selectedChatId}
-        onChatSelect={handleChatSelect}
-        onNewChat={handleNewChat}
-        onChatDeleted={refetchChats}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
-      
-      <ChatInterface
-        selectedChatId={selectedChatId}
-        onChatCreated={handleChatCreated}
-        onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-      />
+    <div className="h-screen w-full bg-white dark:bg-gray-900 transition-colors duration-200">
+      {/* Desktop Layout with Resizable Panels */}
+      <div className="hidden lg:flex h-full">
+        <ResizablePanelGroup direction="horizontal">
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <Sidebar
+              chats={chats}
+              selectedChatId={selectedChatId}
+              onChatSelect={setSelectedChatId}
+              onNewChat={() => handleChatCreated(0)}
+              onChatDeleted={handleChatDeleted}
+              isOpen={true}
+              onClose={() => {}}
+            />
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={75}>
+            <ChatInterface
+              selectedChatId={selectedChatId}
+              onChatCreated={handleChatCreated}
+              onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden flex h-full">
+        <Sidebar
+          chats={chats}
+          selectedChatId={selectedChatId}
+          onChatSelect={setSelectedChatId}
+          onNewChat={() => handleChatCreated(0)}
+          onChatDeleted={handleChatDeleted}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+        <ChatInterface
+          selectedChatId={selectedChatId}
+          onChatCreated={handleChatCreated}
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
+      </div>
     </div>
   );
 }

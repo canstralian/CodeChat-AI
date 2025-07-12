@@ -1,14 +1,17 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, ThumbsDown, Share, Copy, Check } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Share, Copy, Check, Clock, CheckCheck } from "lucide-react";
 import CodeBlock from "./code-block";
 import type { Message } from "@shared/schema";
 
 interface MessageItemProps {
   message: Message;
+  isLatest?: boolean;
+  status?: 'sending' | 'delivered' | 'read' | 'error';
 }
 
-export default function MessageItem({ message }: MessageItemProps) {
+export default function MessageItem({ message, isLatest = false, status = 'delivered' }: MessageItemProps) {
   const [copied, setCopied] = useState(false);
 
   const isUser = message.role === "user";
@@ -25,11 +28,48 @@ export default function MessageItem({ message }: MessageItemProps) {
   };
 
   const formatTime = (date: Date) => {
-    return new Date(date).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+    const now = new Date();
+    const messageDate = new Date(date);
+    const diff = now.getTime() - messageDate.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) {
+      return messageDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } else if (hours > 0) {
+      return messageDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } else {
+      return messageDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    }
+  };
+
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'sending':
+        return <Clock className="w-3 h-3 text-gray-400" />;
+      case 'delivered':
+        return <Check className="w-3 h-3 text-gray-400" />;
+      case 'read':
+        return <CheckCheck className="w-3 h-3 text-blue-500" />;
+      case 'error':
+        return <X className="w-3 h-3 text-red-500" />;
+      default:
+        return null;
+    }
   };
 
   const parseMessageContent = (content: string) => {
@@ -71,13 +111,13 @@ export default function MessageItem({ message }: MessageItemProps) {
   const messageParts = parseMessageContent(message.content);
 
   return (
-    <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
+    <div className={`flex ${isUser ? "justify-end" : "justify-start"} group`}>
       <div className={`max-w-4xl ${isUser ? "max-w-3xl" : ""}`}>
         <div
-          className={`rounded-2xl p-4 shadow-sm border ${
+          className={`rounded-2xl p-4 shadow-sm border transition-all duration-200 hover:shadow-md ${
             isUser
-              ? "bg-white border-gray-100 rounded-br-md"
-              : "bg-[#F1F5F9] border-gray-100 rounded-bl-md"
+              ? "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 rounded-br-md"
+              : "bg-[#F1F5F9] dark:bg-gray-800 border-gray-100 dark:border-gray-700 rounded-bl-md"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -100,7 +140,7 @@ export default function MessageItem({ message }: MessageItemProps) {
 
             <div className="flex-1">
               {/* Message Content */}
-              <div className="text-[#1E293B] leading-relaxed">
+              <div className="text-[#1E293B] dark:text-white leading-relaxed">
                 {messageParts.map((part, index) => (
                   <div key={index}>
                     {part.type === "text" ? (
@@ -112,17 +152,27 @@ export default function MessageItem({ message }: MessageItemProps) {
                 ))}
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-4 mt-4">
-                <span className="text-xs text-gray-500">
-                  {formatTime(message.createdAt)}
-                </span>
+              {/* Actions and Status */}
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatTime(message.createdAt)}
+                  </span>
+                  {isUser && isLatest && (
+                    <div className="flex items-center gap-1">
+                      {getStatusIcon()}
+                      <span className="text-xs text-gray-400 capitalize">{status}</span>
+                    </div>
+                  )}
+                </div>
+                
                 {isAI && (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <Button
                       variant="ghost"
                       size="icon"
                       className="text-gray-400 hover:text-[#10B981] h-8 w-8"
+                      title="Good response"
                     >
                       <ThumbsUp className="w-4 h-4" />
                     </Button>
@@ -130,6 +180,7 @@ export default function MessageItem({ message }: MessageItemProps) {
                       variant="ghost"
                       size="icon"
                       className="text-gray-400 hover:text-red-500 h-8 w-8"
+                      title="Poor response"
                     >
                       <ThumbsDown className="w-4 h-4" />
                     </Button>
@@ -138,6 +189,7 @@ export default function MessageItem({ message }: MessageItemProps) {
                       size="icon"
                       className="text-gray-400 hover:text-[#0066CC] h-8 w-8"
                       onClick={handleCopyMessage}
+                      title="Copy message"
                     >
                       {copied ? (
                         <Check className="w-4 h-4 text-[#10B981]" />
@@ -149,6 +201,7 @@ export default function MessageItem({ message }: MessageItemProps) {
                       variant="ghost"
                       size="icon"
                       className="text-gray-400 hover:text-[#0066CC] h-8 w-8"
+                      title="Share message"
                     >
                       <Share className="w-4 h-4" />
                     </Button>

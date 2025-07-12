@@ -1,8 +1,9 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, Plus } from "lucide-react";
+import { Menu, Plus, Search, Command } from "lucide-react";
 import MessageItem from "./message-item";
 import MessageInput from "./message-input";
 import TypingIndicator from "./typing-indicator";
@@ -22,6 +23,7 @@ export default function ChatInterface({
   onMenuToggle,
 }: ChatInterfaceProps) {
   const [isTyping, setIsTyping] = useState(false);
+  const [messageStatuses, setMessageStatuses] = useState<Record<number, 'sending' | 'delivered' | 'read' | 'error'>>({});
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -49,9 +51,19 @@ export default function ChatInterface({
   const sendMessageMutation = useMutation({
     mutationFn: ({ chatId, message }: { chatId: number; message: string }) =>
       chatApi.sendMessage(chatId, { role: "user", content: message }),
-    onSuccess: () => {
+    onMutate: ({ chatId, message }) => {
+      // Optimistically add user message
+      const tempId = Date.now();
+      setMessageStatuses(prev => ({ ...prev, [tempId]: 'sending' }));
+    },
+    onSuccess: (data) => {
       refetchMessages();
       queryClient.invalidateQueries({ queryKey: ["/api/chats"] });
+      
+      // Update message status
+      if (data.userMessage?.id) {
+        setMessageStatuses(prev => ({ ...prev, [data.userMessage.id]: 'delivered' }));
+      }
     },
     onError: (error) => {
       toast({
@@ -82,6 +94,35 @@ export default function ChatInterface({
     }
   };
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + N for new chat
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        onChatCreated(0);
+      }
+      
+      // Cmd/Ctrl + K for search (placeholder)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        toast({
+          title: "Search",
+          description: "Search functionality coming soon!",
+        });
+      }
+
+      // Cmd/Ctrl + [ for sidebar toggle
+      if ((e.metaKey || e.ctrlKey) && e.key === '[') {
+        e.preventDefault();
+        onMenuToggle();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onChatCreated, onMenuToggle, toast]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -93,28 +134,38 @@ export default function ChatInterface({
   }, [messages, isTyping]);
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col bg-white dark:bg-gray-900 transition-colors duration-200">
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white border-b border-gray-200 p-4">
+      <div className="lg:hidden bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={onMenuToggle}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
             >
               <Menu className="w-5 h-5" />
             </Button>
-            <h1 className="text-lg font-bold text-[#1E293B]">CodeChat AI</h1>
+            <h1 className="text-lg font-bold text-[#1E293B] dark:text-white">CodeChat AI</h1>
           </div>
-          <Button
-            onClick={() => onChatCreated(0)}
-            className="bg-[#0066CC] text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
+              title="Search (Cmd+K)"
+            >
+              <Search className="w-5 h-5" />
+            </Button>
+            <Button
+              onClick={() => onChatCreated(0)}
+              className="bg-[#0066CC] text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -128,14 +179,33 @@ export default function ChatInterface({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-bold text-[#1E293B] mb-2">Welcome to CodeChat AI</h2>
-              <p className="text-gray-600 max-w-md mx-auto">
+              <h2 className="text-2xl font-bold text-[#1E293B] dark:text-white mb-2">Welcome to CodeChat AI</h2>
+              <p className="text-gray-600 dark:text-gray-300 max-w-md mx-auto mb-6">
                 Your AI-powered coding assistant for code generation, review, and debugging. Ask me anything about code!
               </p>
+              <div className="flex flex-wrap gap-2 justify-center text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-1">
+                  <Command className="w-3 h-3" />
+                  <span>⌘N New chat</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Command className="w-3 h-3" />
+                  <span>⌘K Search</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Command className="w-3 h-3" />
+                  <span>⌘[ Toggle sidebar</span>
+                </div>
+              </div>
             </div>
           ) : (
-            messages.map((message) => (
-              <MessageItem key={message.id} message={message} />
+            messages.map((message, index) => (
+              <MessageItem 
+                key={message.id} 
+                message={message}
+                isLatest={index === messages.length - 1}
+                status={messageStatuses[message.id] || 'delivered'}
+              />
             ))
           )}
 
