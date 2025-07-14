@@ -112,9 +112,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get messages for a chat
-  app.get("/api/chats/:id/messages", async (req, res) => {
+  app.get("/api/chats/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const chatId = parseInt(req.params.id);
+      const chat = await storage.getChat(chatId);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      // Ensure the chat belongs to the authenticated user
+      const userId = req.user.claims.sub;
+      if (chat.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       const messages = await storage.getMessages(chatId);
       res.json(messages);
     } catch (error) {
