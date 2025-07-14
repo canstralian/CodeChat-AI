@@ -2,6 +2,33 @@
 
 A sophisticated AI-powered code generation and review web application that provides developers with an intelligent chat interface for code-related tasks including debugging, code reviews, optimization, and documentation.
 
+## Target Audience & Experience Level
+
+### Who This App Is For
+- **Professional Developers**: Seeking AI assistance for code reviews, debugging, and optimization
+- **Development Teams**: Looking for collaborative code assistance and documentation generation
+- **Software Engineering Students**: Advanced learners wanting hands-on experience with modern web technologies
+- **Technical Leads**: Needing efficient code review and mentoring tools
+
+### Required Development Experience
+- **Intermediate to Advanced**: This project assumes familiarity with modern web development practices
+- **TypeScript/JavaScript**: Strong understanding of ES6+, async/await, and type systems
+- **React Ecosystem**: Experience with hooks, context, and component lifecycle
+- **Backend Development**: Knowledge of REST APIs, databases, and server-side architecture
+- **Database Management**: Understanding of SQL, ORMs, and database design principles
+
+### Technologies You Should Know
+- **Frontend**: React 18, TypeScript, Tailwind CSS, modern build tools (Vite)
+- **Backend**: Node.js, Express.js, RESTful API design
+- **Database**: PostgreSQL, SQL queries, database migrations
+- **Development Tools**: Git, package managers (npm), environment configuration
+
+### Getting Started Prerequisites
+- Comfortable with command-line interfaces
+- Experience with environment variable configuration
+- Basic understanding of OAuth/authentication flows
+- Familiarity with API integrations (OpenAI/OpenRouter)
+
 ## Features
 
 - **AI-Powered Chat Interface**: Interactive chat with advanced AI models for code assistance
