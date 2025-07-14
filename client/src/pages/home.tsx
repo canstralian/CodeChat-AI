@@ -5,16 +5,44 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/componen
 import Sidebar from "@/components/chat/sidebar";
 import ChatInterface from "@/components/chat/chat-interface";
 import { chatApi } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
 import type { Chat } from "@shared/schema";
 
 export default function Home() {
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Check authentication first
+  const { data: user, isLoading: authLoading, error: authError } = useAuth();
+
   const { data: chats = [], refetch: refetchChats } = useQuery<Chat[]>({
     queryKey: ["/api/chats"],
     queryFn: chatApi.getChats,
+    enabled: !!user, // Only fetch chats if user is authenticated
   });
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="h-screen w-full bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If authentication failed, the useAuth hook will redirect to login
+  if (authError) {
+    return (
+      <div className="h-screen w-full bg-white dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-gray-300">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleChatCreated = (chatId: number) => {
     if (chatId === 0) {

@@ -4,11 +4,11 @@ import { storage } from "./storage";
 import { insertChatSchema, insertMessageSchema } from "@shared/schema";
 import { generateCodeResponse, generateChatTitle } from "./services/openai";
 import { secretsManager } from "./services/secrets";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupTempAuth, isAuthenticated } from "./tempAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Auth middleware (temporary for testing)
+  await setupTempAuth(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -159,9 +159,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Send message and get AI response
-  app.post("/api/chats/:id/messages", async (req, res) => {
+  app.post("/api/chats/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const chatId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      
+      // Verify chat ownership
+      const chat = await storage.getChat(chatId);
+      if (!chat) {
+        return res.status(404).json({ error: "Chat not found" });
+      }
+      
+      if (chat.userId !== userId) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       const messageData = insertMessageSchema.parse({
         ...req.body,
         chatId

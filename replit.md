@@ -6,7 +6,49 @@ This is a full-stack TypeScript application built as a CodeChat AI interface. It
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+### Communication Style
+- Simple, everyday language
+- Avoid technical jargon when possible
+- Clear, concise explanations
+
+### Coding Style Preferences
+Based on the current codebase, the following coding patterns are established:
+
+**TypeScript & JavaScript:**
+- Use TypeScript throughout the entire application
+- Prefer explicit type annotations for function parameters and return types
+- Use interfaces for object shapes and type definitions
+- Async/await pattern for asynchronous operations
+- Arrow functions for component definitions and inline functions
+- Functional programming patterns where appropriate
+
+**React & Frontend:**
+- Functional components with hooks (no class components)
+- Custom hooks for reusable logic (e.g., `useAuth`, `useToast`)
+- Component props with explicit interfaces
+- TanStack Query for server state management
+- File organization: group related components in folders
+- Export default for components, named exports for utilities
+
+**Backend & Node.js:**
+- Express.js with TypeScript
+- RESTful API design patterns
+- Proper error handling with try-catch blocks
+- Middleware pattern for authentication and validation
+- Zod for schema validation
+- Drizzle ORM for database operations
+
+**Database:**
+- PostgreSQL with Drizzle ORM
+- Schema-first approach with type safety
+- Proper foreign key relationships
+- Use migrations for schema changes (via `npm run db:push`)
+
+**Code Organization:**
+- Shared types and schemas in `/shared` directory
+- Clear separation between client and server code
+- Utility functions in `/lib` directories
+- Component-specific styles and logic kept together
 
 ## System Architecture
 

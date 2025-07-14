@@ -66,6 +66,12 @@ export default function ChatInterface({
       }
     },
     onError: (error) => {
+      // Check if it's an authentication error
+      if (error instanceof Error && error.message.includes('401')) {
+        window.location.href = '/api/login';
+        return;
+      }
+      
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
@@ -84,7 +90,7 @@ export default function ChatInterface({
       // Create new chat first
       const newChat = await createChatMutation.mutateAsync({
         title: "New Chat",
-        userId: null,
+        // userId is handled by the backend through authentication
       });
       setIsTyping(true);
       sendMessageMutation.mutate({ chatId: newChat.id, message });

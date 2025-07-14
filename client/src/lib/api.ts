@@ -27,8 +27,17 @@ export const chatApi = {
   },
 
   getChats: async (): Promise<Chat[]> => {
-    const response = await apiRequest("GET", "/api/chats");
-    return response.json();
+    try {
+      const response = await apiRequest("GET", "/api/chats");
+      return response.json();
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('401')) {
+        // Redirect to login on authentication error
+        window.location.href = '/api/login';
+        throw error;
+      }
+      throw error;
+    }
   },
 
   getChat: async (id: number): Promise<Chat> => {
