@@ -192,6 +192,7 @@ This application is optimized for Replit deployment:
 1. Build the application:
 ```bash
 npm run build
+jello
 ```
 
 2. Set up production database and environment variables
