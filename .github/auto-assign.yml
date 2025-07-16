@@ -1,0 +1,31 @@
+
+# Auto-assign configuration
+addReviewers: true
+addAssignees: false
+
+reviewers:
+  - team-lead
+  - senior-developer
+  - code-reviewer
+
+assignees:
+  - project-manager
+
+numberOfReviewers: 2
+numberOfAssignees: 0
+
+# Skip if PR is draft
+skipDraft: true
+
+# Skip if certain keywords in title
+skipKeywords:
+  - '[WIP]'
+  - '[DRAFT]'
+  - 'DO NOT MERGE'
+
+# Filter by file patterns
+filterLabels:
+  - 'frontend'
+  - 'backend'
+  - 'docs'
+  - 'security'

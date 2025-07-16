@@ -1,0 +1,65 @@
+
+# Auto-labeling configuration
+
+# Frontend changes
+'frontend':
+  - 'client/**/*'
+  - '**/*.tsx'
+  - '**/*.jsx'
+  - '**/*.css'
+  - '**/*.scss'
+
+# Backend changes
+'backend':
+  - 'server/**/*'
+  - '**/*.ts'
+  - '**/*.js'
+
+# Documentation changes
+'documentation':
+  - 'docs/**/*'
+  - '**/*.md'
+  - '**/*.rst'
+
+# Configuration changes
+'config':
+  - '**/*.json'
+  - '**/*.yml'
+  - '**/*.yaml'
+  - '**/*.toml'
+  - '.github/**/*'
+
+# Database changes
+'database':
+  - 'shared/schema.ts'
+  - 'server/db.ts'
+  - 'drizzle.config.ts'
+
+# Security related
+'security':
+  - any: ['**/*security*', '**/*auth*', '**/*login*', '**/*session*']
+
+# Dependencies
+'dependencies':
+  - 'package.json'
+  - 'package-lock.json'
+  - 'yarn.lock'
+
+# Testing
+'testing':
+  - '**/*.test.*'
+  - '**/*.spec.*'
+  - 'test/**/*'
+  - '__tests__/**/*'
+
+# Performance
+'performance':
+  - any: ['**/*performance*', '**/*perf*', '**/*benchmark*']
+
+# Bug fixes
+'bug':
+  - any: ['**/*fix*', '**/*bug*', '**/*patch*']
+
+# Features
+'feature':
+  - any: ['**/*feature*', '**/*feat*', '**/*add*']

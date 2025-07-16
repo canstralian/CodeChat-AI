@@ -1,43 +1,89 @@
-## Description
-Brief description of what this PR does
 
-## Changes Made
-- [ ] List of specific changes
-- [ ] Each change on a new line
-- [ ] Use checkboxes for clarity
+## 🎯 Summary
+Brief description of what this PR accomplishes
 
-## Type of Change
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Code refactoring
-- [ ] Performance improvement
-- [ ] Other (please describe):
+## 📋 Type of Change
+- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
+- [ ] ✨ New feature (non-breaking change which adds functionality)
+- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] 📚 Documentation update
+- [ ] 🔧 Code refactoring
+- [ ] ⚡ Performance improvement
+- [ ] 🧪 Test updates
+- [ ] 🔨 Build/CI changes
+- [ ] 🎨 Style/formatting changes
 
-## Testing
+## 🔗 Related Issues
+- Closes #
+- Fixes #
+- Related to #
+
+## 📝 Changes Made
+- [ ] Specific change 1
+- [ ] Specific change 2
+- [ ] Specific change 3
+
+## 🧪 Testing
 - [ ] Manual testing performed
 - [ ] All existing tests pass
-- [ ] New tests added (if applicable)
-- [ ] Integration tests updated (if applicable)
+- [ ] New tests added for new functionality
+- [ ] Integration tests updated
+- [ ] Performance impact assessed
 
-## Screenshots (if applicable)
-Add screenshots for UI changes
+### Test Coverage
+- [ ] Unit tests: _%
+- [ ] Integration tests: _%
+- [ ] E2E tests: _%
 
-## Checklist
-- [ ] My code follows the project's style guidelines
-- [ ] I have performed a self-review of my code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published
+## 📸 Screenshots/Videos
+<!-- Add screenshots for UI changes -->
+<!-- Add videos for complex interactions -->
 
-## Breaking Changes
-List any breaking changes and migration steps required
+## 🔍 Code Quality
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] Code is well-commented
+- [ ] No console.log or debug statements left
+- [ ] Error handling implemented
+- [ ] Performance optimizations applied
 
-## Related Issues
-Fixes #(issue number)
-Closes #(issue number)
-Related to #(issue number)
+## 📖 Documentation
+- [ ] README.md updated
+- [ ] API documentation updated
+- [ ] Code comments added
+- [ ] Migration guide created (if breaking change)
+
+## 🚀 Deployment
+- [ ] Database migrations included
+- [ ] Environment variables updated
+- [ ] Configuration changes documented
+- [ ] Deployment notes added
+
+## 💥 Breaking Changes
+<!-- List any breaking changes and migration steps -->
+
+## 🔒 Security
+- [ ] Security implications reviewed
+- [ ] No sensitive data exposed
+- [ ] Authentication/authorization unchanged
+- [ ] Input validation implemented
+
+## 📊 Performance Impact
+- [ ] Performance tested
+- [ ] No significant performance degradation
+- [ ] Optimizations implemented where possible
+
+## ✅ Checklist
+- [ ] PR title follows conventional commits format
+- [ ] Branch is up to date with target branch
+- [ ] All CI checks pass
+- [ ] Code has been reviewed by author
+- [ ] Ready for review
+
+## 👥 Reviewers
+<!-- Tag specific reviewers if needed -->
+@mention-reviewer-1
+@mention-reviewer-2
+
+## 🎭 Demo
+<!-- Link to demo deployment or instructions to test -->

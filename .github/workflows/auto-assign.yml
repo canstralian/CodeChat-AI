@@ -1,0 +1,34 @@
+
+name: Auto Assign
+
+on:
+  pull_request:
+    types: [opened, ready_for_review]
+  issues:
+    types: [opened]
+
+jobs:
+  auto-assign:
+    name: Auto Assign
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Auto assign reviewers
+        if: github.event_name == 'pull_request'
+        uses: kentaro-m/auto-assign-action@v1.2.5
+        with:
+          configuration-path: '.github/auto-assign.yml'
+      
+      - name: Auto label PR
+        if: github.event_name == 'pull_request'
+        uses: actions/labeler@v4
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: '.github/labeler.yml'
+      
+      - name: Auto label issues
+        if: github.event_name == 'issues'
+        uses: github/issue-labeler@v3.4
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: '.github/issue-labeler.yml'

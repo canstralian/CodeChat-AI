@@ -1,0 +1,42 @@
+
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Specific file types
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+
+# Archive files
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+
+# Lock files should not be merged
+package-lock.json merge=ours
+yarn.lock merge=ours
+
+# Generated files
+dist/ export-ignore
+build/ export-ignore
+coverage/ export-ignore
+node_modules/ export-ignore
+.env export-ignore
+.env.local export-ignore
